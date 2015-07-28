@@ -28,13 +28,13 @@ class License {
 
 	/**
 	 * @param array       $data             Data to sign
-	 * @param string      $private_key_path Path to private key file
+	 * @param string      $private_key		Private key 
 	 * @param bool|string $license_path     Path to file where created license_path should be stored or false for no license_path storing
 	 * @return string License data in json format
 	 */
-	public function createLicense($data, $private_key_path, $license_path = false) {
+	public function createLicense($data, $private_key, $license_path = false) {
 		$this->setData(json_encode($data));
-		$this->setSignature(base64_encode($this->getSspk()->sign($this->getData(), file_get_contents($private_key_path))));
+		$this->setSignature(base64_encode($this->getSspk()->sign($this->getData(), $private_key)));
 		$license = json_encode(array('data'      => $this->getData(),
 									 'signature' => $this->getSignature()));
 
@@ -56,24 +56,24 @@ class License {
 	}
 
 	/**
-	 * @param string $license_path    Path to license_path file
-	 * @param string $public_key_path Path to public key file
+	 * @param string $license    	license 
+	 * @param string $public_key	public key
 	 * @return bool
 	 */
-	public function validateLicense($license_path, $public_key_path) {
-		$this->setLicense(file_get_contents($license_path));
+	public function validateLicense($license, $public_key) {
+		$this->setLicense($license);
 		$this->processLicense();
 
-		return $this->getSspk()->verify($this->getData(), base64_decode($this->getSignature()), file_get_contents($public_key_path));
+		return $this->getSspk()->verify($this->getData(), base64_decode($this->getSignature()), $public_key);
 	}
 
 	/**
-	 * @param string $license_path    Path to license_path file
-	 * @param string $public_key_path Path to public key file
+	 * @param string $license    	license
+	 * @param string $public_key 	public key
 	 * @return bool|string Data when verified, false if not
 	 */
-	public function getDataAndValidateLicense($license_path, $public_key_path) {
-		if ($this->validateLicense($license_path, $public_key_path)) {
+	public function getDataAndValidateLicense($license, $public_key) {
+		if ($this->validateLicense($license, $public_key)) {
 			return $this->getData();
 		}
 		else {
@@ -83,19 +83,11 @@ class License {
 	}
 
 	/**
-	 * @param string|null $private_key_path Path to private key file or false for no private key
-	 * @param string|null $public_key_path  Path to public key file or false for no public key
 	 */
-	public static function createKeypair($private_key_path = false, $public_key_path = false) {
+	public static function createKeypair() {
 		$key = new KeyGenerationSHA512RSA4096Bits();
-
-		if ($private_key_path) {
-			file_put_contents($private_key_path, $key->getPrivateKey());
-		}
-
-		if ($public_key_path) {
-			file_put_contents($public_key_path, $key->getPublicKey());
-		}
+		
+		return array($key->getPrivateKey(), $key->getPublicKey());
 	}
 
 	private function processLicense() {
